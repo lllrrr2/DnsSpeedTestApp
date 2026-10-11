@@ -292,8 +292,15 @@
                                         <DataGridTextColumn Header="备用 DNS 地址" Binding="{Binding SecondaryIP}"
                                                             Width="130"
                                                             Visibility="{Binding Data.IsAddressColumnVisible, Source={StaticResource VmProxy}, Converter={StaticResource BooleanToVisibilityConverter}}" />
-                                        <DataGridTextColumn Header="支持协议" Width="120"
-                                                            Binding="{Binding Converter={StaticResource CapabilitiesConverter}}" />
+                                        <DataGridTextColumn Header="支持协议" Width="120">
+                                            <DataGridTextColumn.Binding>
+                                                <MultiBinding Converter="{StaticResource CapabilitiesConverter}">
+                                                    <Binding Path="DohUrl" />
+                                                    <Binding Path="DotHost" />
+                                                    <Binding Path="DoqHost" />
+                                                </MultiBinding>
+                                            </DataGridTextColumn.Binding>
+                                        </DataGridTextColumn>
                                         <DataGridTemplateColumn Width="*" MinWidth="150"
                                                                 Header="{Binding Data.DisplayedProtocol, Source={StaticResource VmProxy}, Converter={StaticResource ProtocolColumnHeaderConverter}}"
                                                                 Visibility="{Binding Data.IsEndpointColumnVisible, Source={StaticResource VmProxy}, Converter={StaticResource BooleanToVisibilityConverter}}">

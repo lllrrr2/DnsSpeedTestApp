@@ -28,7 +28,8 @@ internal static partial class Program
                 ("adapter-bindings", AdapterBindings),
                 ("dns-config-source", DnsConfigSource),
                 ("saved-theme", SavedTheme),
-                ("domain-deletion", DomainDeletion)
+                ("domain-deletion", DomainDeletion),
+                ("capability-bindings", CapabilityBindings)
             ];
             var selected = checks.Where(check => args.Length == 0 || args.Contains(check.Name)).ToArray();
             Assert(selected.Length > 0, "No matching checks.");

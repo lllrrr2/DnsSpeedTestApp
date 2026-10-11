@@ -8,6 +8,27 @@ namespace DNSSpeedTester.Checks;
 
 internal static partial class Program
 {
+    private static void CapabilityBindings()
+    {
+        var server = new DnsServer("Test", "127.0.0.1");
+        var text = new TextBlock();
+        var binding = new MultiBinding { Converter = new DNSSpeedTester.Converters.CapabilitiesConverter() };
+        foreach (var property in new[] { nameof(server.DohUrl), nameof(server.DotHost), nameof(server.DoqHost) })
+            binding.Bindings.Add(new Binding(property) { Source = server });
+        text.SetBinding(TextBlock.TextProperty, binding);
+        Assert(text.Text == "—", "Unconfigured endpoints must show no capabilities.");
+        server.DohUrl = "https://example.com/dns-query";
+        Assert(text.Text == "DoH", "Adding DoH must refresh the capability binding.");
+        server.DotHost = "example.com";
+        server.DoqHost = "example.com";
+        Assert(text.Text == "DoH · DoT · DoQ", "Each endpoint must update the capability binding.");
+        server.DohUrl = null;
+        server.DotHost = " ";
+        Assert(text.Text == "DoQ", "Cleared and whitespace-only endpoints must remove capabilities.");
+        server.DoqHost = null;
+        Assert(text.Text == "—", "Clearing all endpoints must clear all capabilities.");
+    }
+
     private static void AdapterBindings()
     {
         var adapter = new NetworkAdapter("0", "Test", "Test")
