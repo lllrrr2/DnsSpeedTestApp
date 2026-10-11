@@ -194,8 +194,7 @@ public class DnsSettingService
                     if (returnValue == 0)
                     {
                         // 更新适配器对象的DNS服务器列表
-                        adapter.DnsServers.Clear();
-                        adapter.DnsServers.AddRange(dnsServerAddresses.Select(IPAddress.Parse));
+                        adapter.DnsServers = dnsServerAddresses.Select(IPAddress.Parse).ToList();
                         adapter.IsDhcpEnabled = false;
 
                         return new OperationResult
@@ -254,7 +253,7 @@ public class DnsSettingService
                     if (returnValue == 0)
                     {
                         // 更新适配器对象
-                        adapter.DnsServers.Clear();
+                        adapter.DnsServers = new List<IPAddress>();
                         adapter.IsDhcpEnabled = true;
 
                         return new OperationResult

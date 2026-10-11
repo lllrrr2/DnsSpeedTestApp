@@ -24,7 +24,8 @@ internal static partial class Program
                 ("ipv6-bootstrap", () => RunAsync(Ipv6Bootstrap)),
                 ("result-protocol", () => RunAsync(ResultProtocol)),
                 ("save-failures", SaveFailures),
-                ("backup-recovery", BackupRecovery)
+                ("backup-recovery", BackupRecovery),
+                ("adapter-bindings", AdapterBindings)
             ];
             var selected = checks.Where(check => args.Length == 0 || args.Contains(check.Name)).ToArray();
             Assert(selected.Length > 0, "No matching checks.");
