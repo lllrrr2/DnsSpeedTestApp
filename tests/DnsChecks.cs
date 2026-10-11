@@ -6,6 +6,27 @@ namespace DNSSpeedTester.Checks;
 
 internal static partial class Program
 {
+    private static async Task NegativeResponses()
+    {
+        var query = DnsTestService.BuildDnsQuery("missing.example.com", 1);
+        Assert(!DnsTestService.IsValidDnsResponse(query, query), "A query echo is not a DNS response.");
+        foreach (var code in new[] { 0, 2, 3, 5 })
+        {
+            var response = query.ToArray();
+            response[2] = 0x81;
+            response[3] = (byte)(0x80 | code);
+            Assert(DnsTestService.IsValidDnsResponse(query, response) == (code is 0 or 3), "Only NoError and NXDOMAIN are usable responses.");
+        }
+        await using var doh = new LoopbackDoh(rcode: 3);
+        var result = await new DnsTestService().TestDnsServerAsync(
+            new DnsServer("Negative DoH", "127.0.0.1", dohUrl: doh.Url), "missing.example.com", DnsProtocol.DoH);
+        Assert(result.Latency.HasValue, "A normal NXDOMAIN response must produce a DoH measurement.");
+        await using var dns = new LoopbackDns(IPAddress.Parse("127.0.0.65"), rcode: 3);
+        result = await new DnsTestService().TestDnsServerAsync(new DnsServer("Negative DNS", dns.Address.ToString()),
+            "missing.example.com", DnsProtocol.UdpTcp);
+        Assert(result.Latency.HasValue, "A normal NXDOMAIN response must produce a UDP/TCP measurement.");
+    }
+
     private static async Task CancellationStopsQueries()
     {
         await using var dns = new LoopbackDns(IPAddress.Parse("127.0.0.64"), silentTcp: true);

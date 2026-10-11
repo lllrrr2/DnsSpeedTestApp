@@ -231,7 +231,7 @@ public class DnsTestService
                     var queryResult = await lookupClient.QueryAsync(testDomain, QueryType.A, cancellationToken: ct);
                     stopwatch.Stop();
 
-                    if (!queryResult.HasError)
+                    if (!queryResult.HasError || queryResult.Header.ResponseCode == DnsHeaderResponseCode.NotExistentDomain)
                     {
                         validTests++;
                         totalLatency += (int)stopwatch.ElapsedMilliseconds;
@@ -275,7 +275,7 @@ public class DnsTestService
                     var queryResult = await lookupClient.QueryAsync(testDomain, queryType, cancellationToken: ct);
                     stopwatch.Stop();
 
-                    if (!queryResult.HasError)
+                    if (!queryResult.HasError || queryResult.Header.ResponseCode == DnsHeaderResponseCode.NotExistentDomain)
                     {
                         validTests++;
                         totalLatency += (int)stopwatch.ElapsedMilliseconds;
@@ -318,7 +318,7 @@ public class DnsTestService
                     var queryResult = await lookupClient.QueryAsync(randomDomain, QueryType.A, cancellationToken: ct);
                     stopwatch.Stop();
 
-                    if (!queryResult.HasError)
+                    if (!queryResult.HasError || queryResult.Header.ResponseCode == DnsHeaderResponseCode.NotExistentDomain)
                     {
                         validTests++;
                         totalLatency += (int)stopwatch.ElapsedMilliseconds;
@@ -847,7 +847,7 @@ public class DnsTestService
     public static bool IsValidDnsResponse(byte[] query, byte[]? response)
     {
         // 响应至少需要有 12 字节的头部
-        if (response is not { Length: >= 12 }) return false;
+        if (query.Length < 12 || response is not { Length: >= 12 }) return false;
 
         // 1. 检查事务 ID 是否匹配 (报文的前 2 个字节)
         if (query[0] != response[0] || query[1] != response[1]) return false;
@@ -859,8 +859,8 @@ public class DnsTestService
         var flags = IPAddress.NetworkToHostOrder(BitConverter.ToInt16(response, 2));
         var rcode = flags & 0x0F; // 提取 RCODE
 
-        // RCODE 为 0 表示 NoError (无错误)
-        return rcode == 0;
+        // 随机域名的 NXDOMAIN 也是有效查询往返；拒绝请求报文和截断响应。
+        return (flags & 0x8000) != 0 && (flags & 0x7A00) == 0 && rcode is 0 or 3;
     }
 
     public static DnsServer[] GetCommonDnsServers()
