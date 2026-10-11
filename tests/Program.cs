@@ -15,7 +15,8 @@ internal static partial class Program
                 ("query-flags", QueryRequestsRecursion),
                 ("failed-dns", () => RunAsync(RejectFailedDns)),
                 ("consecutive-additions", ConsecutiveAdditions),
-                ("busy-editing", BusyEditing)
+                ("busy-editing", BusyEditing),
+                ("complete-response-timing", () => RunAsync(CompleteResponseTiming))
             ];
             var selected = checks.Where(check => args.Length == 0 || args.Contains(check.Name)).ToArray();
             Assert(selected.Length > 0, "No matching checks.");

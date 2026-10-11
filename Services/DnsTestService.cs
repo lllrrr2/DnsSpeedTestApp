@@ -550,16 +550,14 @@ public class DnsTestService
 
             var sw = Stopwatch.StartNew();
             using var resp = await httpClient.SendAsync(req, HttpCompletionOption.ResponseHeadersRead, ct);
-            sw.Stop();
-            var handshakeLatency = (int)sw.ElapsedMilliseconds;
-
             var respBytes = await resp.Content.ReadAsByteArrayAsync(ct);
+            sw.Stop();
 
             if (!resp.IsSuccessStatusCode)
                 return new TestResult(null, $"HTTP {(int)resp.StatusCode}", "Connection");
 
             if (IsValidDnsResponse(dnsQuery, respBytes))
-                return new TestResult(handshakeLatency, null, null);
+                return new TestResult((int)sw.ElapsedMilliseconds, null, null);
 
             return new TestResult(null, $"DNS响应无效: {DiagnoseDnsResponse(dnsQuery, respBytes)}", "Protocol");
         }
@@ -602,8 +600,6 @@ public class DnsTestService
                 EnabledSslProtocols = SslProtocols.Tls12 | SslProtocols.Tls13
             };
             await ssl.AuthenticateAsClientAsync(sslOptions, ct);
-            sw.Stop();
-            var handshakeLatency = (int)sw.ElapsedMilliseconds;
 
             var query = BuildDnsQuery(testDomain, 1);
             var framed = AddTcpLengthPrefix(query);
@@ -612,9 +608,10 @@ public class DnsTestService
             await ssl.FlushAsync(ct);
 
             var resp = await ReadTcpPrefixedMessageAsync(ssl, ct);
+            sw.Stop();
 
             if (IsValidDnsResponse(query, resp))
-                return new TestResult(handshakeLatency, null, null);
+                return new TestResult((int)sw.ElapsedMilliseconds, null, null);
 
             return new TestResult(null, $"DNS响应无效: {DiagnoseDnsResponse(query, resp)}", "Protocol");
         }
@@ -681,11 +678,11 @@ public class DnsTestService
                 connectCts.CancelAfter(TimeSpan.FromSeconds(5));
 
                 await using var conn = await QuicConnection.ConnectAsync(options, connectCts.Token);
-                sw.Stop();
-                var handshakeLatency = (int)sw.ElapsedMilliseconds;
 
                 if (checkOnlyConnection)
                 {
+                    sw.Stop();
+                    var handshakeLatency = (int)sw.ElapsedMilliseconds;
                     Debug.WriteLine(
                         $"[DoQ 诊断模式] 连接到 {targetIp}:{port} (Host: {server.DoqHost}) 成功! 耗时: {handshakeLatency} ms");
                     return new TestResult(handshakeLatency, null, null);
@@ -699,8 +696,9 @@ public class DnsTestService
                 stream.CompleteWrites();
 
                 var resp = await ReadTcpPrefixedMessageAsync(stream, outerToken);
+                sw.Stop();
                 if (IsValidDnsResponse(query, resp))
-                    return new TestResult(handshakeLatency,
+                    return new TestResult((int)sw.ElapsedMilliseconds,
                         bypassCert ? "证书验证已跳过" : null,
                         bypassCert ? "TlsWarning" : null);
 
