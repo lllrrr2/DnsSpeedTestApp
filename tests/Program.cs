@@ -17,7 +17,8 @@ internal static partial class Program
                 ("consecutive-additions", ConsecutiveAdditions),
                 ("busy-editing", BusyEditing),
                 ("complete-response-timing", () => RunAsync(CompleteResponseTiming)),
-                ("udp-fallback", () => RunAsync(UdpSurvivesSilentTcp))
+                ("udp-fallback", () => RunAsync(UdpSurvivesSilentTcp)),
+                ("cancellation", () => RunAsync(CancellationStopsQueries))
             ];
             var selected = checks.Where(check => args.Length == 0 || args.Contains(check.Name)).ToArray();
             Assert(selected.Length > 0, "No matching checks.");

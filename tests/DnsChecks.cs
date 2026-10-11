@@ -6,6 +6,18 @@ namespace DNSSpeedTester.Checks;
 
 internal static partial class Program
 {
+    private static async Task CancellationStopsQueries()
+    {
+        await using var dns = new LoopbackDns(IPAddress.Parse("127.0.0.64"), silentTcp: true);
+        using var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(150));
+        var result = await new DnsTestService().TestDnsServerAsync(new DnsServer("Cancel", dns.Address.ToString()),
+            "example.com", DnsProtocol.UdpTcp, cts.Token).WaitAsync(TimeSpan.FromSeconds(2));
+        Assert(result.Status == "已取消" && result.Latency is null, "Cancellation must complete promptly without a result.");
+        var queries = (dns.TcpQueries, dns.UdpQueries);
+        await Task.Delay(3500);
+        Assert(queries == (dns.TcpQueries, dns.UdpQueries), "No queries may be sent after cancellation completes.");
+    }
+
     private static async Task UdpSurvivesSilentTcp()
     {
         await using var dns = new LoopbackDns(IPAddress.Parse("127.0.0.63"), silentTcp: true);

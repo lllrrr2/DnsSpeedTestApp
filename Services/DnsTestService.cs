@@ -82,15 +82,16 @@ public class DnsTestService
             {
                 case DnsProtocol.UdpTcp:
                 {
+                    using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+                    timeoutCts.CancelAfter(TimeSpan.FromSeconds(15));
                     try
                     {
-                        var latency = await EnhancedDnsSpeedTest(serverToTest.PrimaryIP, testDomain)
-                            .WaitAsync(TimeSpan.FromSeconds(15), cancellationToken);
+                        var latency = await EnhancedDnsSpeedTest(serverToTest.PrimaryIP, testDomain, timeoutCts.Token);
                         result = latency.HasValue
                             ? new TestResult(latency, null, null)
                             : new TestResult(null, "DNS查询失败或超时", "Timeout");
                     }
-                    catch (TimeoutException)
+                    catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
                     {
                         result = new TestResult(null, "DNS查询超时(>15s)", "Timeout");
                     }
@@ -112,6 +113,7 @@ public class DnsTestService
                     break;
             }
 
+            cancellationToken.ThrowIfCancellationRequested();
             if (result.LatencyMs.HasValue)
             {
                 serverToTest.Latency = result.LatencyMs.Value;
@@ -153,13 +155,13 @@ public class DnsTestService
     }
 
     // 增强版（传统 UDP/TCP）
-    private async Task<int?> EnhancedDnsSpeedTest(IPAddress serverIp, string testDomain)
+    private async Task<int?> EnhancedDnsSpeedTest(IPAddress serverIp, string testDomain, CancellationToken ct)
     {
         // 各路径独立执行，TCP 不可用时仍能保留 UDP 的有效结果。
         var results = await Task.WhenAll(
-            MeasureTcpDnsLatency(serverIp, testDomain),
-            MeasureUdpDnsLatency(serverIp, testDomain),
-            MeasureRandomDnsLatency(serverIp));
+            MeasureTcpDnsLatency(serverIp, testDomain, ct),
+            MeasureUdpDnsLatency(serverIp, testDomain, ct),
+            MeasureRandomDnsLatency(serverIp, ct));
         var latencies = results.Where(value => value.HasValue).Select(value => value!.Value).ToList();
 
         if (latencies.Count == 0) return null;
@@ -198,7 +200,7 @@ public class DnsTestService
         return new LookupClient(options);
     }
 
-    private async Task<int?> MeasureTcpDnsLatency(IPAddress serverIp, string testDomain)
+    private async Task<int?> MeasureTcpDnsLatency(IPAddress serverIp, string testDomain, CancellationToken ct)
     {
         try
         {
@@ -206,15 +208,16 @@ public class DnsTestService
 
             try
             {
-                await lookupClient.QueryAsync("www.example.com", QueryType.A);
+                await lookupClient.QueryAsync("www.example.com", QueryType.A, cancellationToken: ct);
             }
             catch (Exception)
             {
+                ct.ThrowIfCancellationRequested();
                 // 预热错误可以忽略
             }
 
             // 短暂延迟确保预热完成
-            await Task.Delay(50);
+            await Task.Delay(50, ct);
 
             // 执行多次测试并取均值
             var validTests = 0;
@@ -225,7 +228,7 @@ public class DnsTestService
                 var stopwatch = Stopwatch.StartNew();
                 try
                 {
-                    var queryResult = await lookupClient.QueryAsync(testDomain, QueryType.A);
+                    var queryResult = await lookupClient.QueryAsync(testDomain, QueryType.A, cancellationToken: ct);
                     stopwatch.Stop();
 
                     if (!queryResult.HasError)
@@ -236,23 +239,25 @@ public class DnsTestService
                 }
                 catch (Exception)
                 {
+                    ct.ThrowIfCancellationRequested();
                     // 单次查询失败可以忽略
                 }
 
-                await Task.Delay(200);
+                await Task.Delay(200, ct);
             }
 
             if (validTests > 0) return totalLatency / validTests;
         }
         catch (Exception)
         {
+            ct.ThrowIfCancellationRequested();
             // 整体方法失败
         }
 
         return null;
     }
 
-    private async Task<int?> MeasureUdpDnsLatency(IPAddress serverIp, string testDomain)
+    private async Task<int?> MeasureUdpDnsLatency(IPAddress serverIp, string testDomain, CancellationToken ct)
     {
         try
         {
@@ -267,7 +272,7 @@ public class DnsTestService
                 var stopwatch = Stopwatch.StartNew();
                 try
                 {
-                    var queryResult = await lookupClient.QueryAsync(testDomain, queryType);
+                    var queryResult = await lookupClient.QueryAsync(testDomain, queryType, cancellationToken: ct);
                     stopwatch.Stop();
 
                     if (!queryResult.HasError)
@@ -278,23 +283,25 @@ public class DnsTestService
                 }
                 catch (Exception)
                 {
+                    ct.ThrowIfCancellationRequested();
                     // 单次查询失败可以忽略
                 }
 
-                await Task.Delay(100);
+                await Task.Delay(100, ct);
             }
 
             if (validTests > 0) return totalLatency / validTests;
         }
         catch (Exception)
         {
+            ct.ThrowIfCancellationRequested();
             // 整体方法失败
         }
 
         return null;
     }
 
-    private async Task<int?> MeasureRandomDnsLatency(IPAddress serverIp)
+    private async Task<int?> MeasureRandomDnsLatency(IPAddress serverIp, CancellationToken ct)
     {
         try
         {
@@ -308,7 +315,7 @@ public class DnsTestService
                 var stopwatch = Stopwatch.StartNew();
                 try
                 {
-                    var queryResult = await lookupClient.QueryAsync(randomDomain, QueryType.A);
+                    var queryResult = await lookupClient.QueryAsync(randomDomain, QueryType.A, cancellationToken: ct);
                     stopwatch.Stop();
 
                     if (!queryResult.HasError)
@@ -319,16 +326,18 @@ public class DnsTestService
                 }
                 catch (Exception)
                 {
+                    ct.ThrowIfCancellationRequested();
                     // 单次查询失败可以忽略
                 }
 
-                await Task.Delay(100);
+                await Task.Delay(100, ct);
             }
 
             if (validTests > 0) return totalLatency / validTests;
         }
         catch (Exception)
         {
+            ct.ThrowIfCancellationRequested();
             // 整体方法失败
         }
 
@@ -481,6 +490,7 @@ public class DnsTestService
         TestResult? lastResult = null;
         for (var i = 0; i <= maxRetries; i++)
         {
+            cancellationToken.ThrowIfCancellationRequested();
             if (i > 0) await Task.Delay(500, cancellationToken);
             using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
             cts.CancelAfter(TimeSpan.FromSeconds(8));
@@ -491,7 +501,7 @@ public class DnsTestService
                 // 不支持的协议不需要重试
                 if (lastResult.ErrorCategory == "NotSupported") return lastResult;
             }
-            catch (OperationCanceledException)
+            catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
             {
                 lastResult = new TestResult(null, $"第{i + 1}次尝试超时", "Timeout");
             }
