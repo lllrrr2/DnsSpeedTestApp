@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Globalization;
 using System.IO;
 using System.Net;
 using System.Net.Http;
@@ -761,6 +762,14 @@ public class DnsTestService
     /// <returns>包含 DNS 查询的字节数组。</returns>
     public static byte[] BuildDnsQuery(string domain, ushort qtype, ushort? transactionId = null)
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(domain);
+        domain = domain.Trim();
+        if (domain.EndsWith('.')) domain = domain[..^1];
+        domain = new IdnMapping().GetAscii(domain);
+        var labels = domain.Split('.');
+        if (domain.Length > 253 || labels.Any(label => label.Length is 0 or > 63))
+            throw new ArgumentException("无效的 DNS 域名长度或标签。", nameof(domain));
+
         using var ms = new MemoryStream();
         using var writer = new BinaryWriter(ms);
 
@@ -784,7 +793,6 @@ public class DnsTestService
 
         // 4. 问题部分 (Question Section)
         // 4.1 查询名称 (QNAME)
-        var labels = domain.Split('.');
         foreach (var label in labels)
         {
             var labelBytes = Encoding.ASCII.GetBytes(label);

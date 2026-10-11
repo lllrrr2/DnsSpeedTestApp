@@ -6,6 +6,22 @@ namespace DNSSpeedTester.Checks;
 
 internal static partial class Program
 {
+    private static void DomainEncoding()
+    {
+        var plain = DnsTestService.BuildDnsQuery("example.com", 28, 123);
+        var dotted = DnsTestService.BuildDnsQuery("example.com.", 28, 123);
+        Assert(plain.SequenceEqual(dotted), "A trailing root dot must not change the question.");
+        Assert(dotted.TakeLast(4).SequenceEqual(new byte[] { 0, 28, 0, 1 }), "QTYPE and QCLASS must follow the root terminator.");
+        Assert(DnsTestService.BuildDnsQuery("例子.测试.", 1, 123).SequenceEqual(
+            DnsTestService.BuildDnsQuery("xn--fsqu00a.xn--0zwm56d", 1, 123)), "International names must be encoded as IDNA.");
+        foreach (var invalid in new[] { "example..com", new string('a', 64) + ".com", "." })
+        {
+            try { DnsTestService.BuildDnsQuery(invalid, 1); }
+            catch (ArgumentException) { continue; }
+            throw new InvalidOperationException($"Invalid domain accepted: {invalid}");
+        }
+    }
+
     private static async Task NegativeResponses()
     {
         var query = DnsTestService.BuildDnsQuery("missing.example.com", 1);

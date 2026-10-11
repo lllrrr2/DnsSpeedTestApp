@@ -19,7 +19,8 @@ internal static partial class Program
                 ("complete-response-timing", () => RunAsync(CompleteResponseTiming)),
                 ("udp-fallback", () => RunAsync(UdpSurvivesSilentTcp)),
                 ("cancellation", () => RunAsync(CancellationStopsQueries)),
-                ("negative-responses", () => RunAsync(NegativeResponses))
+                ("negative-responses", () => RunAsync(NegativeResponses)),
+                ("domain-encoding", DomainEncoding)
             ];
             var selected = checks.Where(check => args.Length == 0 || args.Contains(check.Name)).ToArray();
             Assert(selected.Length > 0, "No matching checks.");
