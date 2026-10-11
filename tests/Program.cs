@@ -16,7 +16,8 @@ internal static partial class Program
                 ("failed-dns", () => RunAsync(RejectFailedDns)),
                 ("consecutive-additions", ConsecutiveAdditions),
                 ("busy-editing", BusyEditing),
-                ("complete-response-timing", () => RunAsync(CompleteResponseTiming))
+                ("complete-response-timing", () => RunAsync(CompleteResponseTiming)),
+                ("udp-fallback", () => RunAsync(UdpSurvivesSilentTcp))
             ];
             var selected = checks.Where(check => args.Length == 0 || args.Contains(check.Name)).ToArray();
             Assert(selected.Length > 0, "No matching checks.");

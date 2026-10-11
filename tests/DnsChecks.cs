@@ -6,6 +6,15 @@ namespace DNSSpeedTester.Checks;
 
 internal static partial class Program
 {
+    private static async Task UdpSurvivesSilentTcp()
+    {
+        await using var dns = new LoopbackDns(IPAddress.Parse("127.0.0.63"), silentTcp: true);
+        var result = await new DnsTestService().TestDnsServerAsync(new DnsServer("UDP only", dns.Address.ToString()),
+            "example.com", DnsProtocol.UdpTcp).WaitAsync(TimeSpan.FromSeconds(16));
+        Assert(dns.TcpQueries > 0 && dns.UdpQueries > 0, "Both transports must be attempted.");
+        Assert(result.Latency.HasValue, "A silent TCP service must not discard working UDP results.");
+    }
+
     private static async Task CompleteResponseTiming()
     {
         await using var doh = new LoopbackDoh(bodyDelay: TimeSpan.FromMilliseconds(400));

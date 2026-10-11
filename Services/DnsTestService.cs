@@ -155,16 +155,12 @@ public class DnsTestService
     // 增强版（传统 UDP/TCP）
     private async Task<int?> EnhancedDnsSpeedTest(IPAddress serverIp, string testDomain)
     {
-        var latencies = new List<int>();
-
-        var tcpLatency = await MeasureTcpDnsLatency(serverIp, testDomain);
-        if (tcpLatency.HasValue) latencies.Add(tcpLatency.Value);
-
-        var udpLatency = await MeasureUdpDnsLatency(serverIp, testDomain);
-        if (udpLatency.HasValue) latencies.Add(udpLatency.Value);
-
-        var randomLatency = await MeasureRandomDnsLatency(serverIp);
-        if (randomLatency.HasValue) latencies.Add(randomLatency.Value);
+        // 各路径独立执行，TCP 不可用时仍能保留 UDP 的有效结果。
+        var results = await Task.WhenAll(
+            MeasureTcpDnsLatency(serverIp, testDomain),
+            MeasureUdpDnsLatency(serverIp, testDomain),
+            MeasureRandomDnsLatency(serverIp));
+        var latencies = results.Where(value => value.HasValue).Select(value => value!.Value).ToList();
 
         if (latencies.Count == 0) return null;
 
@@ -180,7 +176,8 @@ public class DnsTestService
         var options = new LookupClientOptions(new IPEndPoint(serverIp, 53))
         {
             UseCache = false,
-            Timeout = TimeSpan.FromSeconds(5),
+            // 预热加三次查询需在外层 15 秒预算内完成。
+            Timeout = TimeSpan.FromSeconds(3),
             Retries = 0,
             UseTcpOnly = true,
             EnableAuditTrail = false
@@ -193,7 +190,7 @@ public class DnsTestService
         var options = new LookupClientOptions(new IPEndPoint(serverIp, 53))
         {
             UseCache = false,
-            Timeout = TimeSpan.FromSeconds(5),
+            Timeout = TimeSpan.FromSeconds(3),
             Retries = 0,
             UseTcpOnly = false,
             EnableAuditTrail = false
