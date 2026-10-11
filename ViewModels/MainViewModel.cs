@@ -453,6 +453,7 @@ public partial class MainViewModel : ObservableObject
 
             DnsServers.Add(newDns);
             SelectedDnsServer = newDns;
+            IsEditingDns = false;
 
             ClearDnsInputFields();
             SaveCustomDnsServers();
@@ -572,6 +573,7 @@ public partial class MainViewModel : ObservableObject
 
             TestDomains.Add(newDomain);
             SelectedTestDomain = newDomain;
+            IsEditingTestDomain = false;
 
             NewTestDomainName = string.Empty;
             NewTestDomainValue = string.Empty;

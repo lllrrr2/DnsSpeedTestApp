@@ -10,8 +10,19 @@ internal static partial class Program
     {
         try
         {
-            QueryRequestsRecursion();
-            RunAsync(RejectFailedDns);
+            (string Name, Action Run)[] checks =
+            [
+                ("query-flags", QueryRequestsRecursion),
+                ("failed-dns", () => RunAsync(RejectFailedDns)),
+                ("consecutive-additions", ConsecutiveAdditions)
+            ];
+            var selected = checks.Where(check => args.Length == 0 || args.Contains(check.Name)).ToArray();
+            Assert(selected.Length > 0, "No matching checks.");
+            foreach (var check in selected)
+            {
+                check.Run();
+                Console.WriteLine($"PASS {check.Name}");
+            }
             Console.WriteLine("All regression checks passed.");
             return 0;
         }
