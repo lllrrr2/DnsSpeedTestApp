@@ -806,7 +806,7 @@ public class DnsTestService
         // .... ..0. .... .... = TC: 0 (Not Truncated)
         // .... ...1 .... .... = RD: 1 (Recursion Desired)
         // 其他为0
-        writer.Write((ushort)IPAddress.HostToNetworkOrder(0x0100));
+        writer.Write(IPAddress.HostToNetworkOrder((short)0x0100));
 
         // 3. 问题、回答、权威、附加记录的数量
         writer.Write(IPAddress.HostToNetworkOrder((short)1)); // QDCOUNT (1 question)
