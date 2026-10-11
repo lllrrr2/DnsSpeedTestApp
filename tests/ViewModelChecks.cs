@@ -2,6 +2,24 @@ namespace DNSSpeedTester.Checks;
 
 internal static partial class Program
 {
+    private static void DomainDeletion()
+    {
+        using var fixture = new TestWorkspace();
+        var vm = fixture.CreateViewModel();
+        var button = new System.Windows.Controls.Button { DataContext = vm };
+        button.SetBinding(System.Windows.Controls.Button.CommandProperty, new System.Windows.Data.Binding("RemoveTestDomainCommand"));
+        button.SetBinding(System.Windows.Controls.Button.CommandParameterProperty, new System.Windows.Data.Binding("SelectedTestDomain"));
+        Assert(!button.IsEnabled, "Deleting must be disabled without a domain selection.");
+        vm.SelectedTestDomain = new DNSSpeedTester.Models.TestDomain("Built-in", "example.com", "Test");
+        Assert(!button.IsEnabled, "Built-in domains must not be deletable.");
+        vm.SelectedTestDomain = new DNSSpeedTester.Models.TestDomain("Custom", "example.com", "Custom", true);
+        Assert(button.IsEnabled, "Selecting a custom domain must enable the delete button.");
+        vm.IsBusy = true;
+        Assert(!button.IsEnabled, "Deleting must be disabled during testing.");
+        vm.IsBusy = false;
+        Assert(button.IsEnabled, "Deleting must become available again after testing.");
+    }
+
     private static void SaveFailures()
     {
         using var fixture = new TestWorkspace();

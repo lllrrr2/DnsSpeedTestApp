@@ -612,13 +612,14 @@
                                 <Separator Margin="0,20" />
 
                                 <TextBlock Text="自定义测试域名" FontSize="16" FontWeight="SemiBold" />
-                                <TextBlock Text="提示：在“测速”的域名下拉中选择一个自定义域名即可载入下方表单进行修改。"
+                                <TextBlock Text="提示：在“测速”的域名下拉中选择一个自定义域名，即可在此修改或删除。"
                                            Foreground="{DynamicResource AppMutedBrush}"
                                            TextWrapping="Wrap" Margin="0,4,0,12" />
                                 <Grid>
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="*" />
                                         <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
                                         <ColumnDefinition Width="Auto" />
                                     </Grid.ColumnDefinitions>
                                     <TextBox Grid.Column="0"
@@ -648,6 +649,16 @@
                                                 </materialDesign:PackIcon.Style>
                                             </materialDesign:PackIcon>
                                             <TextBlock Text="{Binding AddTestDomainButtonText}" />
+                                        </StackPanel>
+                                    </Button>
+                                    <Button Grid.Column="3"
+                                            Command="{Binding RemoveTestDomainCommand}"
+                                            CommandParameter="{Binding SelectedTestDomain}"
+                                            Style="{StaticResource AppOutlinedButton}"
+                                            ToolTip="删除选中的自定义测试域名" Margin="8,0,0,0">
+                                        <StackPanel Orientation="Horizontal">
+                                            <materialDesign:PackIcon Kind="DeleteOutline" Margin="0,0,8,0" />
+                                            <TextBlock Text="删除" />
                                         </StackPanel>
                                     </Button>
                                 </Grid>

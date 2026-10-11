@@ -27,6 +27,7 @@ public partial class MainViewModel : ObservableObject
     [NotifyCanExecuteChangedFor(nameof(ResetToDhcpCommand))]
     [NotifyCanExecuteChangedFor(nameof(AddCustomDnsCommand))]
     [NotifyCanExecuteChangedFor(nameof(AddTestDomainCommand))]
+    [NotifyCanExecuteChangedFor(nameof(RemoveTestDomainCommand))]
     [NotifyCanExecuteChangedFor(nameof(RefreshRandomDomainCommand))]
     private bool _isBusy;
 
@@ -86,7 +87,9 @@ public partial class MainViewModel : ObservableObject
     [NotifyPropertyChangedFor(nameof(IsAddressColumnVisible))]
     private DnsProtocol? _resultProtocol;
 
-    [ObservableProperty] private TestDomain? _selectedTestDomain;
+    [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(RemoveTestDomainCommand))]
+    private TestDomain? _selectedTestDomain;
 
     // 状态信息
     [ObservableProperty] private string _statusMessage = string.Empty;
@@ -629,10 +632,12 @@ public partial class MainViewModel : ObservableObject
         }
     }
 
-    [RelayCommand]
+    private bool CanRemoveTestDomain(TestDomain? domain) => !IsBusy && domain is { IsCustom: true };
+
+    [RelayCommand(CanExecute = nameof(CanRemoveTestDomain))]
     private async Task RemoveTestDomain(TestDomain domain)
     {
-        if (domain == null || !domain.IsCustom) return;
+        if (!CanRemoveTestDomain(domain)) return;
 
         if (await AppDialogService.ConfirmAsync("删除确认", $"确定要删除自定义测试域名 '{domain.Name} [{domain.Domain}]' 吗？"))
         {

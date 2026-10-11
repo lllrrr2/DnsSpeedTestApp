@@ -27,7 +27,8 @@ internal static partial class Program
                 ("backup-recovery", BackupRecovery),
                 ("adapter-bindings", AdapterBindings),
                 ("dns-config-source", DnsConfigSource),
-                ("saved-theme", SavedTheme)
+                ("saved-theme", SavedTheme),
+                ("domain-deletion", DomainDeletion)
             ];
             var selected = checks.Where(check => args.Length == 0 || args.Contains(check.Name)).ToArray();
             Assert(selected.Length > 0, "No matching checks.");
