@@ -75,9 +75,16 @@ public partial class MainViewModel : ObservableObject
     private NetworkAdapter? _selectedNetworkAdapter;
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(DisplayedProtocol))]
     [NotifyPropertyChangedFor(nameof(IsEndpointColumnVisible))]
     [NotifyPropertyChangedFor(nameof(IsAddressColumnVisible))]
     private DnsProtocol _selectedProtocol = DnsProtocol.UdpTcp;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(DisplayedProtocol))]
+    [NotifyPropertyChangedFor(nameof(IsEndpointColumnVisible))]
+    [NotifyPropertyChangedFor(nameof(IsAddressColumnVisible))]
+    private DnsProtocol? _resultProtocol;
 
     [ObservableProperty] private TestDomain? _selectedTestDomain;
 
@@ -121,9 +128,24 @@ public partial class MainViewModel : ObservableObject
     public bool IsDarkTheme => ThemeMode == nameof(AppThemeMode.Dark);
     public bool IsSystemTheme => ThemeMode == nameof(AppThemeMode.System);
 
-    public bool IsEndpointColumnVisible => SelectedProtocol != DnsProtocol.UdpTcp;
+    public DnsProtocol DisplayedProtocol => ResultProtocol ?? SelectedProtocol;
 
-    public bool IsAddressColumnVisible => SelectedProtocol == DnsProtocol.UdpTcp;
+    public bool IsEndpointColumnVisible => DisplayedProtocol != DnsProtocol.UdpTcp;
+
+    public bool IsAddressColumnVisible => DisplayedProtocol == DnsProtocol.UdpTcp;
+
+    partial void OnSelectedProtocolChanged(DnsProtocol value)
+    {
+        if (IsBusy) return;
+        ResultProtocol = null;
+        foreach (var server in DnsServers)
+        {
+            server.Latency = null;
+            server.Status = "未测试";
+            server.StatusDetail = string.Empty;
+            server.IsFastest = false;
+        }
+    }
 
     // 集合
     public ObservableCollection<DnsServer> DnsServers { get; }
@@ -249,7 +271,9 @@ public partial class MainViewModel : ObservableObject
             // 每轮刷新随机测试域名，避免命中解析器缓存导致测速失真
             RefreshRandomDomain();
             var testDomain = SelectedTestDomain.Domain;
-            StatusMessage = $"开始测试 DNS 服务器 (协议: {SelectedProtocol}, 域名: {testDomain})...";
+            var protocol = SelectedProtocol;
+            ResultProtocol = protocol;
+            StatusMessage = $"开始测试 DNS 服务器 (协议: {protocol}, 域名: {testDomain})...";
 
             foreach (var server in dnsServersList)
             {
@@ -260,7 +284,7 @@ public partial class MainViewModel : ObservableObject
             var tasks = new Dictionary<DnsServer, Task<DnsServer>>();
             foreach (var server in dnsServersList)
             {
-                var task = _dnsTestService.TestDnsServerAsync(server, testDomain, SelectedProtocol,
+                var task = _dnsTestService.TestDnsServerAsync(server, testDomain, protocol,
                     _testCts.Token);
                 tasks.Add(server, task);
             }
@@ -313,7 +337,7 @@ public partial class MainViewModel : ObservableObject
                 StatusMessage = "测速已取消";
             else
                 StatusMessage =
-                    $"DNS 测速完成（协议: {SelectedProtocol}），结果为本机到各 DNS 服务器解析 {testDomain} 的往返延迟";
+                    $"DNS 测速完成（协议: {protocol}），结果为本机到各 DNS 服务器解析 {testDomain} 的往返延迟";
         }
         catch (Exception ex)
         {

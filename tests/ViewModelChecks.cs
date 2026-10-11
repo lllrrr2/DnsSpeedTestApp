@@ -2,6 +2,26 @@ namespace DNSSpeedTester.Checks;
 
 internal static partial class Program
 {
+    private static async Task ResultProtocol()
+    {
+        _ = System.Windows.Application.Current ?? new System.Windows.Application();
+        using var fixture = new TestWorkspace();
+        var vm = fixture.CreateViewModel();
+        await using var doh = new LoopbackDoh(bodyDelay: TimeSpan.FromMilliseconds(100));
+        vm.DnsServers.Add(new DNSSpeedTester.Models.DnsServer("DoH", "127.0.0.1", dohUrl: doh.Url));
+        vm.SelectedTestDomain = new DNSSpeedTester.Models.TestDomain("Example", "example.com", "Test");
+        vm.SelectedProtocol = DNSSpeedTester.Models.DnsProtocol.DoH;
+        var test = vm.StartTestCommand.ExecuteAsync(null);
+        vm.SelectedProtocol = DNSSpeedTester.Models.DnsProtocol.DoT;
+        await test;
+        Assert(vm.StatusMessage.Contains("协议: DoH"), "Completion must name the tested protocol.");
+        Assert(vm.DisplayedProtocol == DNSSpeedTester.Models.DnsProtocol.DoH && vm.DnsServers[0].Latency.HasValue,
+            "Endpoint columns must retain the result protocol even if selection changes during testing.");
+        vm.SelectedProtocol = DNSSpeedTester.Models.DnsProtocol.UdpTcp;
+        Assert(vm.DnsServers[0].Latency is null && !vm.DnsServers[0].IsFastest && vm.IsAddressColumnVisible,
+            "Changing protocol after testing must clear old measurements and update columns.");
+    }
+
     private static void BusyEditing()
     {
         using var fixture = new TestWorkspace();

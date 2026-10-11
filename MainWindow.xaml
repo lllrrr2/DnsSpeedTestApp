@@ -295,7 +295,7 @@
                                         <DataGridTextColumn Header="支持协议" Width="120"
                                                             Binding="{Binding Converter={StaticResource CapabilitiesConverter}}" />
                                         <DataGridTemplateColumn Width="*" MinWidth="150"
-                                                                Header="{Binding Data.SelectedProtocol, Source={StaticResource VmProxy}, Converter={StaticResource ProtocolColumnHeaderConverter}}"
+                                                                Header="{Binding Data.DisplayedProtocol, Source={StaticResource VmProxy}, Converter={StaticResource ProtocolColumnHeaderConverter}}"
                                                                 Visibility="{Binding Data.IsEndpointColumnVisible, Source={StaticResource VmProxy}, Converter={StaticResource BooleanToVisibilityConverter}}">
                                             <DataGridTemplateColumn.CellTemplate>
                                                 <DataTemplate>
@@ -308,7 +308,7 @@
                                                                 <Binding Path="DohDisplay" />
                                                                 <Binding Path="DotDisplay" />
                                                                 <Binding Path="DoqDisplay" />
-                                                                <Binding Path="Data.SelectedProtocol"
+                                                                <Binding Path="Data.DisplayedProtocol"
                                                                          Source="{StaticResource VmProxy}" />
                                                             </MultiBinding>
                                                         </TextBlock.Text>
