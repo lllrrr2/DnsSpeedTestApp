@@ -22,7 +22,8 @@ internal static partial class Program
                 ("negative-responses", () => RunAsync(NegativeResponses)),
                 ("domain-encoding", DomainEncoding),
                 ("ipv6-bootstrap", () => RunAsync(Ipv6Bootstrap)),
-                ("result-protocol", () => RunAsync(ResultProtocol))
+                ("result-protocol", () => RunAsync(ResultProtocol)),
+                ("save-failures", SaveFailures)
             ];
             var selected = checks.Where(check => args.Length == 0 || args.Contains(check.Name)).ToArray();
             Assert(selected.Length > 0, "No matching checks.");

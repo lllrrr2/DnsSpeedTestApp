@@ -2,6 +2,32 @@ namespace DNSSpeedTester.Checks;
 
 internal static partial class Program
 {
+    private static void SaveFailures()
+    {
+        using var fixture = new TestWorkspace();
+        var vm = fixture.CreateViewModel();
+        System.IO.Directory.CreateDirectory(System.IO.Path.Combine(fixture.Root, "custom_dns.json"));
+        System.IO.Directory.CreateDirectory(System.IO.Path.Combine(fixture.Root, "custom_domains.json"));
+        vm.NewDnsName = "Unsaved";
+        vm.NewPrimaryDns = "127.0.0.1";
+        vm.AddCustomDnsCommand.Execute(null);
+        Assert(vm.StatusMessage.Contains("失败") && vm.StatusMessage.Contains("未保存"), "A failed DNS save must not report success.");
+        vm.NewTestDomainName = "Unsaved";
+        vm.NewTestDomainValue = "example.com";
+        vm.AddTestDomainCommand.Execute(null);
+        Assert(vm.StatusMessage.Contains("失败") && vm.StatusMessage.Contains("未保存"), "A failed domain save must not report success.");
+        vm.SelectedDnsServer = null;
+        vm.SelectedDnsServer = vm.DnsServers[0];
+        vm.NewDnsName = "Edited";
+        vm.AddCustomDnsCommand.Execute(null);
+        Assert(vm.StatusMessage.Contains("失败"), "Editing DNS must propagate save failures.");
+        vm.SelectedTestDomain = null;
+        vm.SelectedTestDomain = vm.TestDomains[0];
+        vm.NewTestDomainName = "Edited";
+        vm.AddTestDomainCommand.Execute(null);
+        Assert(vm.StatusMessage.Contains("失败"), "Editing domains must propagate save failures.");
+    }
+
     private static async Task ResultProtocol()
     {
         _ = System.Windows.Application.Current ?? new System.Windows.Application();

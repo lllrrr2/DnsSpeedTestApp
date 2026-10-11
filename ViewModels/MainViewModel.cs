@@ -457,7 +457,7 @@ public partial class MainViewModel : ObservableObject
                 server.Latency = null;
                 server.StatusDetail = string.Empty;
 
-                SaveCustomDnsServers();
+                if (!SaveCustomDnsServers()) return;
                 IsEditingDns = false;
                 ClearDnsInputFields();
                 StatusMessage = $"已修改 DNS 服务器: {server.Name}";
@@ -480,7 +480,7 @@ public partial class MainViewModel : ObservableObject
             IsEditingDns = false;
 
             ClearDnsInputFields();
-            SaveCustomDnsServers();
+            if (!SaveCustomDnsServers()) return;
 
             StatusMessage = $"已添加自定义 DNS 服务器: {newDns.Name}";
         }
@@ -526,7 +526,7 @@ public partial class MainViewModel : ObservableObject
             var wasSelected = SelectedDnsServer == server;
 
             DnsServers.Remove(server);
-            SaveCustomDnsServers();
+            if (!SaveCustomDnsServers()) return;
 
             if (wasSelected)
             {
@@ -585,7 +585,7 @@ public partial class MainViewModel : ObservableObject
                 IsEditingTestDomain = false;
                 NewTestDomainName = string.Empty;
                 NewTestDomainValue = string.Empty;
-                SaveCustomTestDomains();
+                if (!SaveCustomTestDomains()) return;
                 StatusMessage = $"已修改测试域名: {domain.Name} [{domain.Domain}]";
                 return;
             }
@@ -603,7 +603,7 @@ public partial class MainViewModel : ObservableObject
             NewTestDomainName = string.Empty;
             NewTestDomainValue = string.Empty;
 
-            SaveCustomTestDomains();
+            if (!SaveCustomTestDomains()) return;
 
             StatusMessage = $"已添加自定义测试域名: {newDomain.Name} [{newDomain.Domain}]";
         }
@@ -637,7 +637,7 @@ public partial class MainViewModel : ObservableObject
         if (await AppDialogService.ConfirmAsync("删除确认", $"确定要删除自定义测试域名 '{domain.Name} [{domain.Domain}]' 吗？"))
         {
             TestDomains.Remove(domain);
-            SaveCustomTestDomains();
+            if (!SaveCustomTestDomains()) return;
             StatusMessage = $"已删除自定义测试域名: {domain.Name}";
 
             if (SelectedTestDomain == domain)
@@ -760,29 +760,33 @@ public partial class MainViewModel : ObservableObject
             SelectedTestDomain = TestDomains.FirstOrDefault(d => d.Domain == "www.baidu.com") ?? TestDomains[0];
     }
 
-    private void SaveCustomDnsServers()
+    private bool SaveCustomDnsServers()
     {
         try
         {
             var customServers = DnsServers.Where(s => s.IsCustom).ToList();
             _dataPersistenceService.SaveCustomDnsServers(customServers);
+            return true;
         }
         catch (Exception ex)
         {
-            StatusMessage = $"保存自定义 DNS 列表时出错: {ex.Message}";
+            StatusMessage = $"保存自定义 DNS 列表失败，当前修改未保存: {ex.Message}";
+            return false;
         }
     }
 
-    private void SaveCustomTestDomains()
+    private bool SaveCustomTestDomains()
     {
         try
         {
             var customDomains = TestDomains.Where(d => d.IsCustom).ToList();
             _dataPersistenceService.SaveCustomTestDomains(customDomains);
+            return true;
         }
         catch (Exception ex)
         {
-            StatusMessage = $"保存自定义测试域名列表时出错: {ex.Message}";
+            StatusMessage = $"保存自定义测试域名列表失败，当前修改未保存: {ex.Message}";
+            return false;
         }
     }
 }
