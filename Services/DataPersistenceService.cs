@@ -146,25 +146,14 @@ public class DataPersistenceService
     {
         try
         {
-            // Create a backup of the existing file if it exists
-            if (File.Exists(filePath))
-            {
-                var backupPath = $"{filePath}.bak";
-                File.Copy(filePath, backupPath, true);
-                LogInfo($"Created backup at {backupPath}");
-            }
-
-            // Serialize to a string first
             var json = JsonSerializer.Serialize(data, _jsonOptions);
-
-            // Write to a temporary file first, then move it to the destination
             var tempPath = $"{filePath}.tmp";
             File.WriteAllText(tempPath, json);
 
             if (File.Exists(filePath))
-                File.Delete(filePath);
-
-            File.Move(tempPath, filePath);
+                File.Replace(tempPath, filePath, $"{filePath}.bak");
+            else
+                File.Move(tempPath, filePath);
         }
         catch (Exception ex)
         {
@@ -175,39 +164,25 @@ public class DataPersistenceService
 
     private T? LoadFromFile<T>(string filePath) where T : class
     {
-        try
+        foreach (var candidate in new[] { filePath, $"{filePath}.bak" })
         {
-            if (!File.Exists(filePath))
-                return null;
-
-            var json = File.ReadAllText(filePath);
-            if (string.IsNullOrWhiteSpace(json))
-                return null;
-
-            return JsonSerializer.Deserialize<T>(json, _jsonOptions);
-        }
-        catch (Exception ex)
-        {
-            LogError($"Error loading from file '{filePath}': {ex.Message}");
-
-            // Try to recover from backup
             try
             {
-                var backupPath = $"{filePath}.bak";
-                if (File.Exists(backupPath))
-                {
-                    LogInfo($"Attempting to restore from backup: {backupPath}");
-                    var backupJson = File.ReadAllText(backupPath);
-                    return JsonSerializer.Deserialize<T>(backupJson, _jsonOptions);
-                }
+                if (!File.Exists(candidate)) continue;
+                var json = File.ReadAllText(candidate);
+                if (string.IsNullOrWhiteSpace(json)) continue;
+                var data = JsonSerializer.Deserialize<T>(json, _jsonOptions);
+                if (data is null) continue;
+                if (candidate != filePath) LogInfo($"Loaded backup: {candidate}");
+                return data;
             }
-            catch (Exception backupEx)
+            catch (Exception ex)
             {
-                LogError($"Failed to restore from backup: {backupEx.Message}");
+                LogError($"Error loading from file '{candidate}': {ex.Message}");
             }
-
-            throw;
         }
+
+        return null;
     }
 
     public void SaveBootstrapDns(string? bootstrapDns)

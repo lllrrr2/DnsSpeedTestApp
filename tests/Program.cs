@@ -23,7 +23,8 @@ internal static partial class Program
                 ("domain-encoding", DomainEncoding),
                 ("ipv6-bootstrap", () => RunAsync(Ipv6Bootstrap)),
                 ("result-protocol", () => RunAsync(ResultProtocol)),
-                ("save-failures", SaveFailures)
+                ("save-failures", SaveFailures),
+                ("backup-recovery", BackupRecovery)
             ];
             var selected = checks.Where(check => args.Length == 0 || args.Contains(check.Name)).ToArray();
             Assert(selected.Length > 0, "No matching checks.");
