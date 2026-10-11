@@ -394,7 +394,8 @@ public class DnsTestService
     private async Task<IPAddress?> ResolveViaBootstrapDnsAsync(string hostname, AddressFamily preferredFamily,
         CancellationToken ct)
     {
-        if (BootstrapDnsIp is null) return null;
+        var bootstrapIp = BootstrapDnsIp;
+        if (bootstrapIp is null) return null;
 
         try
         {
@@ -402,8 +403,8 @@ public class DnsTestService
             var txId = (ushort)Random.Shared.Next(1, 65535);
             var query = BuildDnsQuery(hostname, qtype, txId);
 
-            using var udp = new UdpClient();
-            var remoteEp = new IPEndPoint(BootstrapDnsIp, 53);
+            using var udp = new UdpClient(bootstrapIp.AddressFamily);
+            var remoteEp = new IPEndPoint(bootstrapIp, 53);
             // ReceiveTimeout/SendTimeout 对异步 ReceiveAsync 无效，改用链接令牌 3s 封顶
             using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
             timeoutCts.CancelAfter(TimeSpan.FromSeconds(3));

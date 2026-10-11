@@ -20,7 +20,8 @@ internal static partial class Program
                 ("udp-fallback", () => RunAsync(UdpSurvivesSilentTcp)),
                 ("cancellation", () => RunAsync(CancellationStopsQueries)),
                 ("negative-responses", () => RunAsync(NegativeResponses)),
-                ("domain-encoding", DomainEncoding)
+                ("domain-encoding", DomainEncoding),
+                ("ipv6-bootstrap", () => RunAsync(Ipv6Bootstrap))
             ];
             var selected = checks.Where(check => args.Length == 0 || args.Contains(check.Name)).ToArray();
             Assert(selected.Length > 0, "No matching checks.");
