@@ -30,7 +30,7 @@ internal static partial class Program
 
     private static async Task ResultProtocol()
     {
-        _ = System.Windows.Application.Current ?? new System.Windows.Application();
+        EnsureApplication();
         using var fixture = new TestWorkspace();
         var vm = fixture.CreateViewModel();
         await using var doh = new LoopbackDoh(bodyDelay: TimeSpan.FromMilliseconds(100));

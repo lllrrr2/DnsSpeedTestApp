@@ -26,7 +26,8 @@ internal static partial class Program
                 ("save-failures", SaveFailures),
                 ("backup-recovery", BackupRecovery),
                 ("adapter-bindings", AdapterBindings),
-                ("dns-config-source", DnsConfigSource)
+                ("dns-config-source", DnsConfigSource),
+                ("saved-theme", SavedTheme)
             ];
             var selected = checks.Where(check => args.Length == 0 || args.Contains(check.Name)).ToArray();
             Assert(selected.Length > 0, "No matching checks.");
@@ -56,6 +57,22 @@ internal static partial class Program
     private static void Assert(bool condition, string message)
     {
         if (!condition) throw new InvalidOperationException(message);
+    }
+
+    private static void EnsureApplication()
+    {
+        if (System.Windows.Application.Current is not null) return;
+        var app = new System.Windows.Application();
+        app.Resources.MergedDictionaries.Add(new MaterialDesignThemes.Wpf.BundledTheme
+        {
+            BaseTheme = MaterialDesignThemes.Wpf.BaseTheme.Light,
+            PrimaryColor = MaterialDesignColors.PrimaryColor.Blue,
+            SecondaryColor = MaterialDesignColors.SecondaryColor.Blue
+        });
+        app.Resources.MergedDictionaries.Add(new System.Windows.ResourceDictionary
+        {
+            Source = new Uri("pack://application:,,,/DNSSpeedTester;component/Resources/Themes/Light.xaml")
+        });
     }
 
     private static void RunAsync(Func<Task> check)

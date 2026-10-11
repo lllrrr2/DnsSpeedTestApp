@@ -728,7 +728,16 @@ public partial class MainViewModel : ObservableObject
             {
                 var savedTheme = _dataPersistenceService.LoadThemeMode();
                 if (Enum.TryParse<AppThemeMode>(savedTheme, out var mode))
+                {
+                    // 加载时同步绑定，但不触发 setter 再次写入配置。
+#pragma warning disable MVVMTK0034
+                    SetProperty(ref _themeMode, mode.ToString(), nameof(ThemeMode));
+#pragma warning restore MVVMTK0034
+                    OnPropertyChanged(nameof(IsLightTheme));
+                    OnPropertyChanged(nameof(IsDarkTheme));
+                    OnPropertyChanged(nameof(IsSystemTheme));
                     ThemeService.Apply(mode);
+                }
             }
             catch (Exception ex)
             {
