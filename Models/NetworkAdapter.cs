@@ -1,4 +1,4 @@
-﻿using System.Net;
+using System.Net;
 
 using CommunityToolkit.Mvvm.ComponentModel;
 
@@ -17,7 +17,7 @@ public partial class NetworkAdapter : ObservableObject
     public string Name { get; set; }
     public string Description { get; set; }
     public bool IsConnected { get; set; }
-    [ObservableProperty] private bool _isDhcpEnabled;
+    [ObservableProperty] private bool _isDnsAutomatic;
     [ObservableProperty] private List<IPAddress> _dnsServers = new();
 
     public override string ToString()

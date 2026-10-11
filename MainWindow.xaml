@@ -480,7 +480,7 @@
                                 <StackPanel>
                                     <TextBlock>
                                         <Run Text="当前获取方式: " />
-                                        <Run Text="{Binding SelectedNetworkAdapter.IsDhcpEnabled, Mode=OneWay}"
+                                        <Run Text="{Binding SelectedNetworkAdapter.IsDnsAutomatic, Mode=OneWay}"
                                              FontWeight="SemiBold" />
                                         <Run Text="  (True=自动获取/DHCP)" Foreground="{DynamicResource AppMutedBrush}" />
                                     </TextBlock>

@@ -25,7 +25,8 @@ internal static partial class Program
                 ("result-protocol", () => RunAsync(ResultProtocol)),
                 ("save-failures", SaveFailures),
                 ("backup-recovery", BackupRecovery),
-                ("adapter-bindings", AdapterBindings)
+                ("adapter-bindings", AdapterBindings),
+                ("dns-config-source", DnsConfigSource)
             ];
             var selected = checks.Where(check => args.Length == 0 || args.Contains(check.Name)).ToArray();
             Assert(selected.Length > 0, "No matching checks.");

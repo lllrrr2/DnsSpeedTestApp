@@ -1,8 +1,9 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using System.Management;
 using System.Net;
 using System.Security.Principal;
 using DNSSpeedTester.Models;
+using Microsoft.Win32;
 
 namespace DNSSpeedTester.Services;
 
@@ -85,6 +86,7 @@ public class DnsSettingService
                             {
                                 var adapter = new NetworkAdapter(index, description, description);
                                 adapter.IsConnected = true;
+                                adapter.IsDnsAutomatic = ReadDnsAutomaticMode(obj["SettingID"]?.ToString());
 
                                 // 获取 DNS 服务器
                                 if (obj["DNSServerSearchOrder"] is string[] dnsServers && dnsServers.Length > 0)
@@ -131,7 +133,7 @@ public class DnsSettingService
                 {
                     try
                     {
-                        adapter.IsDhcpEnabled = Convert.ToBoolean(obj["DHCPEnabled"] ?? false);
+                        adapter.IsDnsAutomatic = ReadDnsAutomaticMode(obj["SettingID"]?.ToString());
 
                         // 获取 DNS 服务器
                         if (obj["DNSServerSearchOrder"] is string[] dnsServers && dnsServers.Length > 0)
@@ -160,7 +162,22 @@ public class DnsSettingService
         }
     }
 
-    // 其他方法保持不变...
+    private static bool ReadDnsAutomaticMode(string? interfaceId)
+    {
+        if (!Guid.TryParse(interfaceId, out var id))
+            throw new InvalidOperationException("无法确定网络适配器的 DNS 配置来源");
+
+        // DHCPEnabled 仅描述 IP 分配方式；NameServer 保存手动配置的 DNS。
+        using var ipv4 = Registry.LocalMachine.OpenSubKey(
+            $@"SYSTEM\CurrentControlSet\Services\Tcpip\Parameters\Interfaces\{id:B}");
+        using var ipv6 = Registry.LocalMachine.OpenSubKey(
+            $@"SYSTEM\CurrentControlSet\Services\Tcpip6\Parameters\Interfaces\{id:B}");
+        return IsAutomaticDns(ipv4?.GetValue("NameServer") as string, ipv6?.GetValue("NameServer") as string);
+    }
+
+    private static bool IsAutomaticDns(string? ipv4NameServer, string? ipv6NameServer) =>
+        string.IsNullOrWhiteSpace(ipv4NameServer) && string.IsNullOrWhiteSpace(ipv6NameServer);
+
     // 设置 DNS 服务器
     public async Task<OperationResult> SetDnsServersAsync(NetworkAdapter adapter, DnsServer dnsServer)
     {
@@ -195,7 +212,7 @@ public class DnsSettingService
                     {
                         // 更新适配器对象的DNS服务器列表
                         adapter.DnsServers = dnsServerAddresses.Select(IPAddress.Parse).ToList();
-                        adapter.IsDhcpEnabled = false;
+                        adapter.IsDnsAutomatic = false;
 
                         return new OperationResult
                         {
@@ -254,7 +271,7 @@ public class DnsSettingService
                     {
                         // 更新适配器对象
                         adapter.DnsServers = new List<IPAddress>();
-                        adapter.IsDhcpEnabled = true;
+                        adapter.IsDnsAutomatic = true;
 
                         return new OperationResult
                         {
