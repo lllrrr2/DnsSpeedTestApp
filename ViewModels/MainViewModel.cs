@@ -468,6 +468,7 @@ public partial class MainViewModel : ObservableObject
 
     private bool CanAddCustomDns()
     {
+        if (IsBusy) return false;
         if (string.IsNullOrWhiteSpace(NewDnsName) || string.IsNullOrWhiteSpace(NewPrimaryDns)) return false;
 
         if (!string.IsNullOrWhiteSpace(NewDohUrl))
@@ -590,6 +591,7 @@ public partial class MainViewModel : ObservableObject
 
     private bool CanAddTestDomain()
     {
+        if (IsBusy) return false;
         if (string.IsNullOrWhiteSpace(NewTestDomainName) || string.IsNullOrWhiteSpace(NewTestDomainValue)) return false;
 
         try
