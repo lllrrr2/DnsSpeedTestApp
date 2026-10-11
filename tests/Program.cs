@@ -1,4 +1,5 @@
 using DNSSpeedTester.Services;
+using System.Windows.Threading;
 
 namespace DNSSpeedTester.Checks;
 
@@ -10,6 +11,7 @@ internal static partial class Program
         try
         {
             QueryRequestsRecursion();
+            RunAsync(RejectFailedDns);
             Console.WriteLine("All regression checks passed.");
             return 0;
         }
@@ -31,5 +33,16 @@ internal static partial class Program
     private static void Assert(bool condition, string message)
     {
         if (!condition) throw new InvalidOperationException(message);
+    }
+
+    private static void RunAsync(Func<Task> check)
+    {
+        SynchronizationContext.SetSynchronizationContext(new DispatcherSynchronizationContext());
+        var task = check();
+        var frame = new DispatcherFrame();
+        var dispatcher = Dispatcher.CurrentDispatcher;
+        _ = task.ContinueWith(_ => dispatcher.BeginInvoke(() => frame.Continue = false), TaskScheduler.Default);
+        Dispatcher.PushFrame(frame);
+        task.GetAwaiter().GetResult();
     }
 }

@@ -3,7 +3,6 @@ using System.IO;
 using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
-using System.Net.NetworkInformation;
 using System.Net.Quic;
 using System.Net.Security;
 using System.Net.Sockets;
@@ -167,9 +166,6 @@ public class DnsTestService
         var randomLatency = await MeasureRandomDnsLatency(serverIp);
         if (randomLatency.HasValue) latencies.Add(randomLatency.Value);
 
-        var pingLatency = await MeasurePingLatency(serverIp);
-        if (pingLatency.HasValue) latencies.Add(pingLatency.Value);
-
         if (latencies.Count == 0) return null;
 
         if (latencies.Count == 1) return latencies[0];
@@ -315,11 +311,14 @@ public class DnsTestService
                 var stopwatch = Stopwatch.StartNew();
                 try
                 {
-                    _ = await lookupClient.QueryAsync(randomDomain, QueryType.A);
+                    var queryResult = await lookupClient.QueryAsync(randomDomain, QueryType.A);
                     stopwatch.Stop();
 
-                    validTests++;
-                    totalLatency += (int)stopwatch.ElapsedMilliseconds;
+                    if (!queryResult.HasError)
+                    {
+                        validTests++;
+                        totalLatency += (int)stopwatch.ElapsedMilliseconds;
+                    }
                 }
                 catch (Exception)
                 {
@@ -330,42 +329,6 @@ public class DnsTestService
             }
 
             if (validTests > 0) return totalLatency / validTests;
-        }
-        catch (Exception)
-        {
-            // 整体方法失败
-        }
-
-        return null;
-    }
-
-    private async Task<int?> MeasurePingLatency(IPAddress serverIp)
-    {
-        try
-        {
-            using var ping = new Ping();
-            var validPings = 0;
-            var totalPingLatency = 0;
-
-            for (var i = 0; i < 4; i++)
-                try
-                {
-                    var reply = await ping.SendPingAsync(serverIp, 3000, new byte[32]);
-                    if (reply.Status == IPStatus.Success)
-                    {
-                        validPings++;
-                        totalPingLatency += (int)reply.RoundtripTime;
-                    }
-
-                    await Task.Delay(100);
-                }
-                catch (Exception)
-                {
-                    // 单次 ping 失败可以忽略
-                }
-
-            if (validPings > 0)
-                return (int)Math.Round(totalPingLatency * 1.2 / validPings);
         }
         catch (Exception)
         {
